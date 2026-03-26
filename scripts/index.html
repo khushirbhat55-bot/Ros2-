@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RoboDeliver — Indian Street</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0a0a0f;
+    --surface:   #13131a;
+    --border:    #1e1e2e;
+    --accent:    #f97316;
+    --green:     #22c55e;
+    --red:       #ef4444;
+    --blue:      #3b82f6;
+    --purple:    #a855f7;
+    --text:      #e2e8f0;
+    --muted:     #64748b;
+    --kirana:    #f97316;
+    --medical:   #3b82f6;
+    --chai:      #ef4444;
+    --stationery:#a855f7;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(249,115,22,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(249,115,22,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .logo-icon {
+    width: 42px;
+    height: 42px;
+    background: var(--accent);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    animation: pulse-glow 2s infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(249,115,22,0.4); }
+    50%       { box-shadow: 0 0 0 8px rgba(249,115,22,0); }
+  }
+
+  .logo h1 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+
+  .logo span { color: var(--accent); }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.4rem 1rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: blink 1.5s infinite;
+  }
+
+  .status-dot.busy { background: var(--accent); }
+  .status-dot.error { background: var(--red); animation: none; }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.3; }
+  }
+
+  /* Main grid */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 1.5rem;
+  }
+
+  /* World Map */
+  .map-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .map-area {
+    position: relative;
+    height: 420px;
+    background:
+      radial-gradient(ellipse at 30% 40%, rgba(34,197,94,0.04) 0%, transparent 60%),
+      #0d1117;
+    overflow: hidden;
+  }
+
+  /* Road */
+  .road {
+    position: absolute;
+    top: 50%;
+    left: 0; right: 0;
+    height: 80px;
+    transform: translateY(-50%);
+    background: #1a1a2e;
+    border-top: 2px dashed rgba(255,255,255,0.1);
+    border-bottom: 2px dashed rgba(255,255,255,0.1);
+  }
+
+  .road-line {
+    position: absolute;
+    top: 50%;
+    left: 0; right: 0;
+    height: 2px;
+    background: repeating-linear-gradient(
+      90deg,
+      rgba(249,115,22,0.3) 0px, rgba(249,115,22,0.3) 30px,
+      transparent 30px, transparent 60px
+    );
+    transform: translateY(-50%);
+  }
+
+  /* Footpaths */
+  .footpath {
+    position: absolute;
+    left: 0; right: 0;
+    height: 20px;
+    background: rgba(180,160,130,0.12);
+  }
+  .footpath.top    { top: calc(50% - 60px); }
+  .footpath.bottom { bottom: calc(50% - 60px); }
+
+  /* Robot */
+  .robot {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    background: var(--accent);
+    border-radius: 50%;
+    border: 3px solid #fff;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+  }
+
+  .robot::after {
+    content: '';
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid rgba(249,115,22,0.3);
+    animation: ripple 2s infinite;
+  }
+
+  @keyframes ripple {
+    0%   { transform: scale(0.8); opacity: 1; }
+    100% { transform: scale(1.8); opacity: 0; }
+  }
+
+  /* Navigation path */
+  .nav-path {
+    position: absolute;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  /* Shop nodes */
+  .shop-node {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    transform: translate(-50%, -50%);
+    z-index: 8;
+    transition: transform 0.2s ease;
+  }
+
+  .shop-node:hover { transform: translate(-50%, -50%) scale(1.1); }
+
+  .shop-node.selected-pickup .shop-icon {
+    box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--green);
+    animation: selected-pulse 1s infinite;
+  }
+
+  .shop-node.selected-delivery .shop-icon {
+    box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--accent);
+    animation: selected-pulse 1s infinite;
+  }
+
+  @keyframes selected-pulse {
+    0%, 100% { filter: brightness(1); }
+    50%       { filter: brightness(1.3); }
+  }
+
+  .shop-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    border: 2px solid rgba(255,255,255,0.15);
+    transition: box-shadow 0.3s ease;
+  }
+
+  .shop-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-align: center;
+    background: rgba(0,0,0,0.7);
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  .shop-badge {
+    font-size: 0.55rem;
+    background: rgba(255,255,255,0.1);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--muted);
+  }
+
+  /* Map legend */
+  .map-legend {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    display: flex;
+    gap: 8px;
+    font-size: 0.6rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+  }
+
+  /* Right panel */
+  .panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .card-body { padding: 1.25rem; }
+
+  /* Selection display */
+  .selection-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .selection-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    width: 55px;
+    flex-shrink: 0;
+  }
+
+  .selection-value {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 38px;
+    color: var(--muted);
+    transition: all 0.3s ease;
+  }
+
+  .selection-value.filled {
+    color: var(--text);
+    border-color: rgba(255,255,255,0.1);
+  }
+
+  .selection-value.pickup-filled  { border-color: var(--green); }
+  .selection-value.delivery-filled { border-color: var(--accent); }
+
+  .arrow-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    font-size: 1.2rem;
+  }
+
+  /* Instruction */
+  .instruction {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-align: center;
+    padding: 0.5rem;
+    background: rgba(249,115,22,0.05);
+    border-radius: 8px;
+    border: 1px dashed rgba(249,115,22,0.2);
+    margin-bottom: 0.75rem;
+  }
+
+  /* Launch button */
+  .btn-launch {
+    width: 100%;
+    padding: 0.9rem;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .btn-launch:hover:not(:disabled) {
+    background: #ea6c0a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(249,115,22,0.4);
+  }
+
+  .btn-launch:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-cancel {
+    width: 100%;
+    padding: 0.6rem;
+    background: transparent;
+    color: var(--red);
+    border: 1px solid var(--red);
+    border-radius: 10px;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 0.5rem;
+    display: none;
+  }
+
+  .btn-cancel:hover { background: rgba(239,68,68,0.1); }
+  .btn-cancel.visible { display: block; }
+
+  /* Status log */
+  .log-area {
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    min-height: 80px;
+    max-height: 140px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .log-entry {
+    display: flex;
+    gap: 8px;
+    opacity: 0;
+    animation: fadeIn 0.3s forwards;
+  }
+
+  @keyframes fadeIn {
+    to { opacity: 1; }
+  }
+
+  .log-time { color: var(--muted); flex-shrink: 0; }
+  .log-msg  { color: var(--text); }
+  .log-msg.success { color: var(--green); }
+  .log-msg.error   { color: var(--red); }
+  .log-msg.info    { color: var(--accent); }
+
+  /* Progress bar */
+  .progress-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+    display: none;
+  }
+
+  .progress-bar.visible { display: block; }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), var(--accent));
+    border-radius: 999px;
+    width: 0%;
+    transition: width 0.5s ease;
+  }
+
+  /* Shop quick select */
+  .shop-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .shop-btn {
+    padding: 0.6rem 0.5rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    text-align: left;
+  }
+
+  .shop-btn:hover { border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.03); }
+  .shop-btn.active-pickup   { border-color: var(--green);  background: rgba(34,197,94,0.08); }
+  .shop-btn.active-delivery { border-color: var(--accent); background: rgba(249,115,22,0.08); }
+
+  .select-hint {
+    font-size: 0.6rem;
+    color: var(--muted);
+    margin-top: 0.4rem;
+    text-align: center;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🤖</div>
+      <h1>Robo<span>Deliver</span></h1>
+    </div>
+    <div class="status-pill">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">Robot Ready</span>
+    </div>
+  </header>
+
+  <div class="main-grid">
+
+    <!-- World Map -->
+    <div class="map-card">
+      <div class="card-header">🗺️ &nbsp;Indian Street — Gazebo World</div>
+      <div class="map-area" id="mapArea">
+        <div class="footpath top"></div>
+        <div class="road"><div class="road-line"></div></div>
+        <div class="footpath bottom"></div>
+
+        <!-- SVG for navigation path -->
+        <svg class="nav-path" id="navPath" width="100%" height="100%"></svg>
+
+        <!-- Shop nodes (positioned via JS) -->
+        <div class="shop-node" id="node-kirana"
+             style="left:72%; top:22%"
+             onclick="selectShop('kirana')">
+          <div class="shop-icon" style="background:rgba(249,115,22,0.15)">🏪</div>
+          <div class="shop-label" style="color:var(--kirana)">Kirana Store</div>
+          <div class="shop-badge">Shop 1</div>
+        </div>
+
+        <div class="shop-node" id="node-medical"
+             style="left:28%; top:22%"
+             onclick="selectShop('medical')">
+          <div class="shop-icon" style="background:rgba(59,130,246,0.15)">💊</div>
+          <div class="shop-label" style="color:var(--medical)">Medical Store</div>
+          <div class="shop-badge">Shop 2</div>
+        </div>
+
+        <div class="shop-node" id="node-chai"
+             style="left:72%; top:78%"
+             onclick="selectShop('chai')">
+          <div class="shop-icon" style="background:rgba(239,68,68,0.15)">☕</div>
+          <div class="shop-label" style="color:var(--chai)">Chai Stall</div>
+          <div class="shop-badge">Shop 3</div>
+        </div>
+
+        <div class="shop-node" id="node-stationery"
+             style="left:28%; top:78%"
+             onclick="selectShop('stationery')">
+          <div class="shop-icon" style="background:rgba(168,85,247,0.15)">✏️</div>
+          <div class="shop-label" style="color:var(--stationery)">Stationery</div>
+          <div class="shop-badge">Shop 4</div>
+        </div>
+
+        <!-- Robot -->
+        <div class="robot" id="robot" title="Your Robot">🤖</div>
+
+        <div class="map-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> Pickup</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div> Delivery</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--accent); border-radius:50%"></div> Robot</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="panel">
+
+      <!-- Mission Card -->
+      <div class="card">
+        <div class="card-header">🎯 &nbsp;Mission Setup</div>
+        <div class="card-body">
+
+          <div class="instruction" id="instruction">
+            👆 Click a shop on the map to set pickup, then click another for delivery
+          </div>
+
+          <div class="selection-row">
+            <div class="selection-label">📦 Pickup</div>
+            <div class="selection-value" id="pickupDisplay">Not selected</div>
+          </div>
+
+          <div class="arrow-icon" style="text-align:center; margin: 0.25rem 0">↓</div>
+
+          <div class="selection-row">
+            <div class="selection-label">🏁 Deliver</div>
+            <div class="selection-value" id="deliveryDisplay">Not selected</div>
+          </div>
+
+          <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+
+          <button class="btn-launch" id="launchBtn" onclick="startMission()" disabled>
+            🚀 Launch Mission
+          </button>
+          <button class="btn-cancel" id="cancelBtn" onclick="cancelMission()">
+            ✕ Cancel Mission
+          </button>
+
+        </div>
+      </div>
+
+      <!-- Quick Select -->
+      <div class="card">
+        <div class="card-header">⚡ &nbsp;Quick Select</div>
+        <div class="card-body">
+          <div class="shop-grid">
+            <button class="shop-btn" id="btn-kirana"    onclick="selectShop('kirana')">    🏪 Kirana</button>
+            <button class="shop-btn" id="btn-medical"   onclick="selectShop('medical')">   💊 Medical</button>
+            <button class="shop-btn" id="btn-chai"      onclick="selectShop('chai')">      ☕ Chai Stall</button>
+            <button class="shop-btn" id="btn-stationery" onclick="selectShop('stationery')">✏️ Stationery</button>
+          </div>
+          <div class="select-hint">First click = Pickup &nbsp;|&nbsp; Second click = Delivery</div>
+        </div>
+      </div>
+
+      <!-- Status Log -->
+      <div class="card">
+        <div class="card-header">📋 &nbsp;Mission Log</div>
+        <div class="card-body" style="padding:0.75rem">
+          <div class="log-area" id="logArea">
+            <div class="log-entry">
+              <span class="log-time">00:00</span>
+              <span class="log-msg info">System initialized. Robot ready.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  const SERVER = 'http://localhost:8000';
+
+  const SHOP_COLORS = {
+    kirana:     'var(--kirana)',
+    medical:    'var(--medical)',
+    chai:       'var(--chai)',
+    stationery: 'var(--stationery)',
+  };
+
+  const SHOP_EMOJIS = {
+    kirana: '🏪', medical: '💊', chai: '☕', stationery: '✏️'
+  };
+
+  const SHOP_NAMES = {
+    kirana: 'Kirana Store', medical: 'Medical Store',
+    chai: 'Chai Stall', stationery: 'Stationery Store'
+  };
+
+  let pickupShop    = null;
+  let deliveryShop  = null;
+  let selectionStep = 'pickup'; // 'pickup' or 'delivery'
+  let pollInterval  = null;
+  let missionStart  = null;
+
+  function selectShop(id) {
+    if (selectionStep === 'pickup') {
+      // Clear previous
+      if (pickupShop) clearShopStyle(pickupShop);
+      if (deliveryShop) clearShopStyle(deliveryShop);
+      deliveryShop = null;
+      updateDeliveryDisplay(null);
+
+      pickupShop = id;
+      setShopStyle(id, 'pickup');
+      updatePickupDisplay(id);
+      selectionStep = 'delivery';
+      document.getElementById('instruction').textContent = '✅ Pickup set! Now click a shop for delivery';
+      addLog(`Pickup set: ${SHOP_NAMES[id]}`, 'info');
+    } else {
+      if (id === pickupShop) {
+        addLog('Pickup and delivery cannot be the same shop!', 'error');
+        return;
+      }
+      if (deliveryShop) clearShopStyle(deliveryShop);
+      deliveryShop = id;
+      setShopStyle(id, 'delivery');
+      updateDeliveryDisplay(id);
+      selectionStep = 'pickup';
+      document.getElementById('instruction').textContent = '🚀 Ready! Hit Launch Mission to go!';
+      document.getElementById('launchBtn').disabled = false;
+      addLog(`Delivery set: ${SHOP_NAMES[id]}`, 'info');
+      drawPath();
+    }
+
+    // Highlight quick-select buttons
+    document.querySelectorAll('.shop-btn').forEach(b => {
+      b.classList.remove('active-pickup', 'active-delivery');
+    });
+    if (pickupShop)   document.getElementById(`btn-${pickupShop}`).classList.add('active-pickup');
+    if (deliveryShop) document.getElementById(`btn-${deliveryShop}`).classList.add('active-delivery');
+  }
+
+  function setShopStyle(id, type) {
+    const node = document.getElementById(`node-${id}`);
+    node.classList.remove('selected-pickup', 'selected-delivery');
+    node.classList.add(type === 'pickup' ? 'selected-pickup' : 'selected-delivery');
+  }
+
+  function clearShopStyle(id) {
+    const node = document.getElementById(`node-${id}`);
+    node.classList.remove('selected-pickup', 'selected-delivery');
+  }
+
+  function updatePickupDisplay(id) {
+    const el = document.getElementById('pickupDisplay');
+    if (id) {
+      el.innerHTML = `${SHOP_EMOJIS[id]} ${SHOP_NAMES[id]}`;
+      el.className = 'selection-value filled pickup-filled';
+    } else {
+      el.innerHTML = 'Not selected';
+      el.className = 'selection-value';
+    }
+  }
+
+  function updateDeliveryDisplay(id) {
+    const el = document.getElementById('deliveryDisplay');
+    if (id) {
+      el.innerHTML = `${SHOP_EMOJIS[id]} ${SHOP_NAMES[id]}`;
+      el.className = 'selection-value filled delivery-filled';
+    } else {
+      el.innerHTML = 'Not selected';
+      el.className = 'selection-value';
+    }
+  }
+
+  function drawPath() {
+    if (!pickupShop || !deliveryShop) return;
+    const svg = document.getElementById('navPath');
+    const map = document.getElementById('mapArea');
+    const pickupNode   = document.getElementById(`node-${pickupShop}`);
+    const deliveryNode = document.getElementById(`node-${deliveryShop}`);
+    const robot        = document.getElementById('robot');
+
+    const getCenter = (el) => {
+      const r = el.getBoundingClientRect();
+      const m = map.getBoundingClientRect();
+      return { x: r.left - m.left + r.width/2, y: r.top - m.top + r.height/2 };
+    };
+
+    const r  = getCenter(robot);
+    const p  = getCenter(pickupNode);
+    const d  = getCenter(deliveryNode);
+
+    svg.innerHTML = `
+      <defs>
+        <marker id="arrowhead" markerWidth="6" markerHeight="4" refX="6" refY="2" orient="auto">
+          <polygon points="0 0, 6 2, 0 4" fill="rgba(34,197,94,0.8)"/>
+        </marker>
+      </defs>
+      <line x1="${r.x}" y1="${r.y}" x2="${p.x}" y2="${p.y}"
+            stroke="rgba(34,197,94,0.5)" stroke-width="2" stroke-dasharray="6,4"
+            marker-end="url(#arrowhead)"/>
+      <line x1="${p.x}" y1="${p.y}" x2="${d.x}" y2="${d.y}"
+            stroke="rgba(249,115,22,0.5)" stroke-width="2" stroke-dasharray="6,4"
+            marker-end="url(#arrowhead)"/>
+    `;
+  }
+
+  function addLog(msg, type = '') {
+    const area = document.getElementById('logArea');
+    const now  = new Date();
+    const time = `${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.innerHTML = `<span class="log-time">${time}</span><span class="log-msg ${type}">${msg}</span>`;
+    area.appendChild(entry);
+    area.scrollTop = area.scrollHeight;
+  }
+
+  async function startMission() {
+    if (!pickupShop || !deliveryShop) return;
+
+    document.getElementById('launchBtn').disabled = true;
+    document.getElementById('cancelBtn').classList.add('visible');
+    document.getElementById('progressBar').classList.add('visible');
+    document.getElementById('progressFill').style.width = '10%';
+
+    missionStart = Date.now();
+    addLog(`🚀 Mission launched! ${SHOP_NAMES[pickupShop]} → ${SHOP_NAMES[deliveryShop]}`, 'info');
+
+    try {
+      const res = await fetch(`${SERVER}/deliver`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pickup: pickupShop, delivery: deliveryShop })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        addLog(data.message, 'info');
+        startPolling();
+      } else {
+        addLog(data.message, 'error');
+        resetUI();
+      }
+    } catch (e) {
+      addLog('⚠️ Cannot connect to robot server. Is robot_server.py running?', 'error');
+      resetUI();
+    }
+  }
+
+  function startPolling() {
+    pollInterval = setInterval(async () => {
+      try {
+        const res  = await fetch(`${SERVER}/status`);
+        const data = await res.json();
+        updateStatusUI(data);
+
+        if (data.state === 'arrived' || data.state === 'idle') {
+          clearInterval(pollInterval);
+          document.getElementById('progressFill').style.width = '100%';
+          setTimeout(resetUI, 2000);
+        } else if (data.state === 'error') {
+          clearInterval(pollInterval);
+          addLog(data.message, 'error');
+          resetUI();
+        }
+      } catch (e) { /* server busy */ }
+    }, 1000);
+  }
+
+  function updateStatusUI(data) {
+    const dot  = document.getElementById('statusDot');
+    const text = document.getElementById('statusText');
+    const fill = document.getElementById('progressFill');
+
+    if (data.state === 'navigating') {
+      dot.className  = 'status-dot busy';
+      text.textContent = 'Navigating...';
+      addLog(data.message, '');
+      // Animate progress
+      const elapsed = (Date.now() - missionStart) / 1000;
+      fill.style.width = Math.min(90, 10 + elapsed * 3) + '%';
+    } else if (data.state === 'arrived') {
+      dot.className  = 'status-dot';
+      text.textContent = 'Delivered!';
+      addLog(data.message, 'success');
+    } else if (data.state === 'idle') {
+      dot.className  = 'status-dot';
+      text.textContent = 'Robot Ready';
+    }
+  }
+
+  async function cancelMission() {
+    try {
+      await fetch(`${SERVER}/cancel`, { method: 'POST' });
+      addLog('Mission cancelled by user', 'error');
+    } catch (e) {
+      addLog('Could not reach server to cancel', 'error');
+    }
+    if (pollInterval) clearInterval(pollInterval);
+    resetUI();
+  }
+
+  function resetUI() {
+    document.getElementById('launchBtn').disabled = (pickupShop && deliveryShop) ? false : true;
+    document.getElementById('cancelBtn').classList.remove('visible');
+    document.getElementById('progressBar').classList.remove('visible');
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('statusDot').className = 'status-dot';
+    document.getElementById('statusText').textContent = 'Robot Ready';
+  }
+
+  // Redraw path on window resize
+  window.addEventListener('resize', () => { if (pickupShop && deliveryShop) drawPath(); });
+</script>
+</body>
+</html>
